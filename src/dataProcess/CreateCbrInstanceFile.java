@@ -22,10 +22,10 @@ public class CreateCbrInstanceFile {
     public static String inputFileName = "file:src/dataProcess/recommend.owl";
     public static String camNS = "http://www.example.com/ontologies/recommend.owl#";
     public static String usersTable = "lastfm_users";
-    public static String userTrackTable = "training_user_track_";
+    public static String userTrackTable = "yearly_table_";
     public static String outputFile = "cbr_training_";
     public static String cbrTableName = "cbr_training_table_";
-    public static final int testTableCount = 3;
+    public static final int testTableCount = 1;
     
     public static OntModel m;
     public static ObjectProperty age;
@@ -71,7 +71,7 @@ public class CreateCbrInstanceFile {
         artist = m.getObjectProperty(camNS + "HAS-ARTIST");
         tag = m.getObjectProperty(camNS + "HAS-TAG"); 
         //create training dbs
-        ins.createTrainingTables();
+        //ins.createTrainingTables();
         //create instance files
         ins.createInstanceFiles();
     }
@@ -83,7 +83,8 @@ public class CreateCbrInstanceFile {
                 conn.insert(sql);
                 
                 sql = "create table " + cbrTableName + i + " (select track_id, sum(listen_count) as listen_count from " + 
-                        userTrackTable + i + "  group by track_id having listen_count >= 10 and count(user_id) >= 10)";
+                        userTrackTable + i + " group by track_id)";
+                System.out.println(sql);
                 conn.insert(sql);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -98,9 +99,18 @@ public class CreateCbrInstanceFile {
                 ResultSet results = conn.query(sql);
                 int counter = 0;
                 while (results.next()) {
+                    long startTime = System.currentTimeMillis();
                     int trackId = results.getInt("track_id");
+                    System.out.println(trackId);
                     int listenCount = results.getInt("listen_count");
                     OntClass obj = m.createClass(camNS + "RECOMMEND_CASE");
+                    
+                    Individual oldInd = m.getIndividual(camNS + "I" + trackId);
+                    if (oldInd != null) {
+                        System.out.println("sistemde var");
+                        continue;
+                    }
+                    
                     Individual instance = obj.createIndividual(camNS + "I" + trackId);
                     counter++;
                     
@@ -125,7 +135,6 @@ public class CreateCbrInstanceFile {
                             userIdsText += userIds.getInt("user_id");
                         }
                     }
-                    System.out.println(userIdsText);
                     
                     //System.out.println(trackId);
                     sql = "select distinct(gender) from  lastfm_users where id in ( " + userIdsText + ")";
@@ -164,15 +173,21 @@ public class CreateCbrInstanceFile {
                         
                         String[] tagArray = tagsCol.split(",");
                         for (int k = 0; k < tagArray.length; k++) {
-                            ObjectProperty tagProp = m.getObjectProperty(camNS + tagArray[k].replace("\"", "").replaceAll("\\s+", "_").replaceAll("#", ""));
+                            ObjectProperty tagProp = m.getObjectProperty(camNS + tagArray[k].replace("\"", "").replaceAll("-", "_").replaceAll("\\s+", "_").replaceAll("#", ""));
                             if (tagProp != null) {
                                 instance.addProperty(tagProp, "true");
                             }
                         }
                     }
-                    System.out.println(counter);
+                    if (counter % 5000 == 0) {
+                        System.out.println("saved : " + counter);
+                        saveIntances(i);
+                        loadOntologyModel();
+                    }
+                    long stopTime = System.currentTimeMillis();
+                    System.out.println((stopTime - startTime) / 1000 + " sec");
                 }
-                saveIntances(i);
+                System.out.println(counter);
             } catch(Exception e) {
                 e.printStackTrace();
             }
@@ -182,7 +197,7 @@ public class CreateCbrInstanceFile {
     public void saveIntances(int i) {
         FileWriter out;
         try {
-            out = new FileWriter(outputFile + i + ".owl");
+            out = new FileWriter("src/dataProcess/recommend.owl");
             m.write(out);
         } catch (IOException e) {
             e.printStackTrace();

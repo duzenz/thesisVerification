@@ -19,14 +19,13 @@ public class CreateUserTrackTablesAndFiles {
         conn = MysqlConnect.getDbCon();
 
         try {
-        	//removing old base table
-        	String sql = "drop table IF EXISTS " + dataTableName;
-        	conn.insert(sql);
+            //removing old base table
+            String sql = "drop table IF EXISTS " + dataTableName;
+            conn.insert(sql);
             
             //creating new base table
             sql = "CREATE table " + dataTableName + " SELECT * from lastfm where time between '" + startDate + "' and '" + endDate + "'";
             conn.insert(sql);
-
             
             sql = "SELECT count(*) as count from " + dataTableName;
             ResultSet countRes = conn.query(sql);
@@ -85,40 +84,6 @@ public class CreateUserTrackTablesAndFiles {
                     int userId = uniqueResultSet.getInt("user_id");
                     System.out.println(userId);
                     sql = "delete from training_user_track_" + i + " where user_id = " + userId;
-                    System.out.println(sql);
-                    conn.insert(sql);
-                }
-                
-                sql = "select distinct(user_id) from training_user_track_" + i;
-            	ResultSet tempResultSet = conn.query(sql);
-            	while(tempResultSet.next()) {
-                    int userId = tempResultSet.getInt("user_id");
-                    sql = "select track_id from training_user_track_" + i + " where user_id = " + userId;
-                    System.out.println(sql);
-                    ResultSet trackResultSet = conn.query(sql);
-                    String tracks = "";
-                    while (trackResultSet.next()) {
-                        tracks += trackResultSet.getInt("track_id") + ",";
-                    }
-                    tracks = tracks.replaceAll(",$", "");
-                    sql = "delete from test_user_track_" + i + " where track_id in (" + tracks + ") and user_id = " + userId;
-                    System.out.println(sql);
-                    conn.insert(sql);
-                }
-            	
-            	sql = "select distinct(user_id) from test_user_track_" + i;
-            	tempResultSet = conn.query(sql);
-            	while(tempResultSet.next()) {
-                    int userId = tempResultSet.getInt("user_id");
-                    sql = "select track_id from test_user_track_" + i + " where user_id = " + userId;
-                    System.out.println(sql);
-                    ResultSet trackResultSet = conn.query(sql);
-                    String tracks = "";
-                    while (trackResultSet.next()) {
-                        tracks += trackResultSet.getInt("track_id") + ",";
-                    }
-                    tracks = tracks.replaceAll(",$", "");
-                    sql = "delete from training_user_track_" + i + " where track_id in (" + tracks + ") and user_id = " + userId;
                     System.out.println(sql);
                     conn.insert(sql);
                 }

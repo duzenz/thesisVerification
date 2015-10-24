@@ -3,17 +3,12 @@ package lastfmData;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.sql.Connection;
-import java.sql.Statement;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 
 public class Tag {
-
-    public static Connection baglanti = null;
-    public static Statement statement = null;
 
     public static void main(String[] args) {
         try {

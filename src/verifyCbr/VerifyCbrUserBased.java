@@ -50,17 +50,18 @@ public class VerifyCbrUserBased {
     InputStream in = null;
 
     public VerifyCbrUserBased() {
-        for (int i = 1; i <= 3; i++) {
+        for (int i = 1; i <= 1; i++) {
             model = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM);
             try {
-                in = new FileInputStream(OWL_FILE_URL + i + ".owl");
+                in = new FileInputStream("data/recommend.owl");
             } catch (Exception e) {
                 e.printStackTrace();
             }
             model.read(in, null);
+            
             caseClass = (OntClass) model.getOntClass(namespace + caseClassName);
             setInstanceList(caseClass);
-            verifyReasonings(i);
+            //verifyReasonings(i);
         }
     }
 
@@ -83,25 +84,140 @@ public class VerifyCbrUserBased {
             ResultSet users = conn.query(sql);
             int counter = 0;
             while (users.next()) {
-                int userId = users.getInt("user_id");
-                counter++;
+                distanceMap.clear();
                 
+                int userId = users.getInt("user_id");
+                System.out.println(userId);
+                counter++;
+                OntClass obj = model.createClass(namespace + "RECOMMEND_CASE");
+                Individual newInd = obj.createIndividual(namespace + "I" + "newInstance");
+                ObjectProperty age = model.getObjectProperty(namespace + "HAS-AGE");
+                ObjectProperty country = model.getObjectProperty(namespace + "HAS-COUNTRY");
+                ObjectProperty gender = model.getObjectProperty(namespace + "HAS-GENDER");
+                ObjectProperty register = model.getObjectProperty(namespace + "HAS-REGISTER");
+                ObjectProperty selfView = model.getObjectProperty(namespace + "HAS-SELF_VIEW");
+                ObjectProperty duration = model.getObjectProperty(namespace + "HAS-DURATION");
+                ObjectProperty listener = model.getObjectProperty(namespace + "HAS-LISTENER");
+                ObjectProperty playcount = model.getObjectProperty(namespace + "HAS-PLAY_COUNT");
+                ObjectProperty artist = model.getObjectProperty(namespace + "HAS-ARTIST");
+                
+                Set<Integer> trackSet = new HashSet<Integer>();
+                Set<String> selfViewSet = new HashSet<String>();
+                Set<String> durationSet = new HashSet<String>();
+                Set<String> listenerSet = new HashSet<String>();
+                Set<String> playCountSet = new HashSet<String>();
+                Set<String> artistSet = new HashSet<String>();
+                Set<String> tagSet = new HashSet<String>();
+                
+                //add user info to individual
+                sql = "select * from lastfm_users where id = " + userId;
+                System.out.println(sql);
+                ResultSet userInfo = conn.query(sql);
+                while (userInfo.next()) {
+                    System.out.println("afer");
+                    newInd.addProperty(gender, model.createTypedLiteral(userInfo.getString("gender")));
+                    newInd.addProperty(age, model.createTypedLiteral(userInfo.getString("age_col")));
+                    newInd.addProperty(country, model.createTypedLiteral(userInfo.getString("country")));
+                    newInd.addProperty(register, model.createTypedLiteral(userInfo.getString("register_col")));
+                    System.out.println(userInfo.getString("gender"));
+                    System.out.println(userInfo.getString("age_col"));
+                    System.out.println(userInfo.getString("country"));
+                    System.out.println(userInfo.getString("register_col"));
+                }
+                
+                //get tracks info
                 sql = "select * from test_user_track_" + index + " where user_id = " + userId;
                 ResultSet tracks = conn.query(sql);
                 int trackCounter = 0;
+                //trackInfoyu setlere atalým
                 while (tracks.next()) {
                     int trackId = tracks.getInt("track_id");
                     int listenCount = tracks.getInt("listen_count");
+                    if (listenCount <= 23) {
+                        selfViewSet.add("few");
+                    } else if (listenCount > 23 && listenCount <= 100) {
+                        selfViewSet.add("normal");
+                    } else {
+                        selfViewSet.add("many");
+                    }
                     trackCounter++;
+                    
+                    trackSet.add(trackId);
+                    
+                    ResultSet trackInfoRs = conn.query("select * from track where id = " + trackId);
+                    while (trackInfoRs.next()) {
+                        durationSet.add(trackInfoRs.getString("duration"));
+                        listenerSet.add(trackInfoRs.getString("listener"));
+                        playCountSet.add(trackInfoRs.getString("play_count"));
+                        artistSet.add(trackInfoRs.getString("artist_mbid"));
+                        
+                        String tags = trackInfoRs.getString("tags");
+                        String[] tagArray = tags.split(",");
+                        for (int i = 0; i < tagArray.length; i++) {
+                            String taggo = tagArray[i].trim();
+                            if (taggo != null && taggo.length() != 0) {
+                                tagSet.add(taggo.replace("\"", "").replaceAll("\\s+", "_").replaceAll("#", ""));
+                            }
+                        }
+                    }
                 }
                 System.out.println(userId + " => " + trackCounter);
                 
-                //clear distanceMap
-                //create instance
+                for (String selfViewVal: selfViewSet)  {
+                    newInd.addProperty(selfView, model.createTypedLiteral(selfViewVal));
+                }
+                System.out.println(selfViewSet);
+                selfViewSet = null;
+                
+                for (String durationVal: durationSet)  {
+                    newInd.addProperty(duration, model.createTypedLiteral(durationVal));
+                }
+                System.out.println(durationSet);
+                durationSet = null;
+                
+                for (String listenerVal: listenerSet)  {
+                    newInd.addProperty(listener, model.createTypedLiteral(listenerVal));
+                }
+                System.out.println(listenerSet);
+                listenerSet = null;
+                
+                for (String playCountVal: playCountSet)  {
+                    newInd.addProperty(playcount, model.createTypedLiteral(playCountVal));
+                }
+                System.out.println(playCountSet);
+                playCountSet = null;
+                
+                for (String artistVal: artistSet)  {
+                    newInd.addProperty(artist, model.createTypedLiteral(artistVal));
+                }
+                System.out.println(artistSet);
+                artistSet = null;
+                
+                for (String tag : tagSet) {
+                    ObjectProperty tagProp = model.getObjectProperty(namespace + tag);
+                    if (tagProp != null) {
+                        newInd.addProperty(tagProp, "true");
+                    }
+                }
+                System.out.println(tagSet);
+                tagSet = null;
+                
+                System.out.println(newInd);
+                
                 //compare with training instances
                 //save to file with the found order
+                
+                compareWithOtherIntances(newInd);
+                
+                if (distanceMap.size() > 0) {
+                    printDistances(userId, trackSet, index);
+                }
+                
+                System.out.println(distanceMap);
+                System.out.println(trackSet);
+                trackSet = null;
+                
             }
-            System.out.println(counter);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -111,9 +227,7 @@ public class VerifyCbrUserBased {
         setComparedPropertyList(testIndividual);
         for (String instance : instanceList) {
             Individual selectedIndividual = model.getIndividual(instance);//TODO static individual list
-            //if (!selectedIndividual.equals(testIndividual)) {
             compareProperties(selectedIndividual, testIndividual);
-            //}
         }
     }
     
@@ -130,13 +244,17 @@ public class VerifyCbrUserBased {
 
     public void compareProperties(Individual selectedIndividual, Individual testedIndividual) {
         int value = 0;
-        
         for (Property p : propertySet) {
             String propertyLocalName = p.getLocalName(); 
             if ("HAS-COUNTRY".equals(propertyLocalName) || 
                 "HAS-GENDER".equals(propertyLocalName) || 
                 "HAS-REGISTER".equals(propertyLocalName) || 
-                "HAS-AGE".equals(propertyLocalName)) {
+                "HAS-AGE".equals(propertyLocalName) || 
+                "HAS-SELF_VIEW".equals(propertyLocalName) || 
+                "HAS-DURATION".equals(propertyLocalName) || 
+                "HAS-LISTENER".equals(propertyLocalName) || 
+                "HAS-PLAY_COUNT".equals(propertyLocalName) || 
+                "HAS-ARTIST".equals(propertyLocalName)) {
                 
                 //multi valued properties comparison
                 StmtIterator testedProps = testedIndividual.listProperties(p);
@@ -144,6 +262,7 @@ public class VerifyCbrUserBased {
                 while (testedProps.hasNext()) {
                     Statement testedStatement = (Statement) testedProps.next();
                     Object testedObj = testedStatement.getLiteral().getValue();
+                    //System.out.println(testedObj);
                     while(comparedProps.hasNext()) {
                         Statement comparedStatement = (Statement) comparedProps.next();
                         Object comparedObj = comparedStatement.getLiteral().getValue();
@@ -163,29 +282,31 @@ public class VerifyCbrUserBased {
         distanceMap.put(selectedIndividual.getLocalName(), value);
     }
     
-    public void printDistances(String trackId, int i) {
-        System.out.println(trackId);
+    public void printDistances(int userId, Set<Integer> trackSet, int i) {
         Util util = new Util();
         Map<String, Integer> sortedMapDesc = util.sortByComparator(distanceMap, DESC);
-        System.out.println(sortedMapDesc.size());
         System.out.println(sortedMapDesc);
-        int counter = 0;
-        Iterator it = sortedMapDesc.entrySet().iterator();
-        boolean found = false;
-        while (it.hasNext()) {
-            counter++;
-            Map.Entry pair = (Map.Entry) it.next();
-            String key = pair.getKey() + "";
-            String recommendTrackId = key.substring(1, key.length());
-            if (recommendTrackId.equals(trackId)) {
-                printResultsToFile(trackId + "," + "1" + "," + pair.getValue() + "," + counter, "data\\cbr_test_results_1.csv");
-                found = true;
-                break;
+        
+        for (int trackId: trackSet) {
+            Iterator it = sortedMapDesc.entrySet().iterator();
+            boolean found = false;
+            int counter = 0;
+            while (it.hasNext()) {
+                counter++;
+                Map.Entry pair = (Map.Entry) it.next();
+                String key = pair.getKey() + "";
+                String recommendTrackId = key.substring(1, key.length());
+                if (recommendTrackId.equals(trackId + "")) {
+                    printResultsToFile(userId + "," + trackId + "," + "1" + "," + pair.getValue() + "," + counter, "data\\cbr_test_results_1.csv");
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                printResultsToFile(userId + "," + trackId + "," + "0,0,0", "data\\cbr_test_results_1.csv");
             }
         }
-        if (!found) {
-            printResultsToFile(trackId + "," + "0,0,0", "data\\cbr_test_results_1.csv");
-        }
+        
         System.out.println("===================");
     }
 

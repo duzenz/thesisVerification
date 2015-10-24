@@ -1,12 +1,13 @@
 package lastfmData;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
 import org.apache.jena.atlas.json.JSON;
-import org.apache.jena.atlas.json.JsonObject;
 import org.apache.jena.atlas.json.JsonArray;
+import org.apache.jena.atlas.json.JsonObject;
 import org.apache.jena.atlas.json.JsonValue;
+
+import connection.MysqlConnect;
 
 
 public class TrackInfo {
@@ -130,5 +131,4 @@ public class TrackInfo {
             e.printStackTrace();
         }
     }
-
 }

@@ -2,10 +2,14 @@ package lastfmData;
 
 import java.io.InputStream;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Blob;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
-import javax.json.Json;
-import javax.json.JsonObject;
+import javax.json.*;
 
 public class LastFm {
 

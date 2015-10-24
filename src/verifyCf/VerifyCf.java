@@ -21,8 +21,8 @@ import org.apache.mahout.cf.taste.similarity.UserSimilarity;
 
 public class VerifyCf {
 
-    public static int threshold = 60;
-    public static int recommendationCount = 10000;
+    public static int threshold = 15;
+    public static int recommendationCount = 1000;
     public static MysqlConnect conn = null;
     public static DataModel dm;
     public static UserSimilarity similarity;
@@ -108,4 +108,6 @@ public class VerifyCf {
             e.printStackTrace();
         }
     }
+    
+    
 }

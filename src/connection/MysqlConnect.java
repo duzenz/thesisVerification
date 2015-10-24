@@ -1,7 +1,8 @@
 package connection;
+
 import com.mysql.jdbc.Connection;
+
 import java.sql.*;
-import java.sql.DriverManager;
 
 public final class MysqlConnect {
     public Connection conn;
@@ -22,43 +23,38 @@ public final class MysqlConnect {
         }
     }
 
-    /**
-     *
-     * @return MysqlConnect Database connection object
-     */
     public static synchronized MysqlConnect getDbCon() {
         if (db == null) {
             db = new MysqlConnect();
         }
         return db;
-
     }
 
-    /**
-     *
-     * @param query
-     *            String The query to be executed
-     * @return a ResultSet object containing the results or null if not
-     *         available
-     * @throws SQLException
-     */
     public ResultSet query(String query) throws SQLException {
         statement = db.conn.createStatement();
         ResultSet res = statement.executeQuery(query);
         return res;
     }
 
-    /**
-     * @desc Method to insert data to a table
-     * @param insertQuery
-     *            String The Insert query
-     * @return boolean
-     * @throws SQLException
-     */
     public int insert(String insertQuery) throws SQLException {
         statement = db.conn.createStatement();
         int result = statement.executeUpdate(insertQuery);
         return result;
     }
 
+    public void exportData(String query) {
+        Statement stmt;
+        try {
+            stmt = db.conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
+            stmt.executeQuery(query);
+        } catch (Exception e) {
+            e.printStackTrace();
+            stmt = null;
+        }
+    }
+
+    public void createCsvFiles(String tablename, String columns, String filename) {
+        String query = "SELECT " + columns + " into OUTFILE  '" + filename + "" + "' FIELDS TERMINATED BY ',' FROM " + tablename + " where order by " + columns;
+        exportData(query);
+    }
 }

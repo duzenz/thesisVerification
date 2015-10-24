@@ -1,4 +1,4 @@
-package lastfmApi;
+package lastfmData;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,31 +11,30 @@ import org.apache.jena.atlas.json.JSON;
 import org.apache.jena.atlas.json.JsonArray;
 import org.apache.jena.atlas.json.JsonObject;
 
-/**
- * 
- * getting distinct track tags of system
- * 
- */
-public class Tag {
+import connection.MysqlConnect;
 
-    public static Connection conn = null;
-    public static Statement statement = null;
+/**
+ * Getting distinct track tags of system.
+ */
+public class DistinctTag {
+
+    private static MysqlConnect conn = null;
 
     public static void main(String args[]) {
+        
+        conn = MysqlConnect.getDbCon();
 
         try {
-            Class.forName("com.mysql.jdbc.Driver");
-            conn = DriverManager.getConnection("jdbc:mysql://localhost/training", "root", "");
 
-            Statement trackTable = conn.createStatement();
-            ResultSet track = trackTable.executeQuery("select * from track");
+            String sql = "select * from track";
+            ResultSet track = conn.query(sql);
 
             Set<String> setA = new HashSet<String>();
-            
             while (track.next()) {
+
                 JsonObject responseObj = JSON.parse(track.getString("blob_content"));
                 JsonObject trackObj = (JsonObject) responseObj.get("track");
-                
+
                 if (trackObj != null) {
                     if (trackObj.get("toptags").isObject()) {
                         JsonObject toptags = (JsonObject) trackObj.get("toptags");
@@ -57,15 +56,7 @@ public class Tag {
             System.out.println(setA);
         } catch (Exception e) {
             e.printStackTrace();
-            System.exit(1);
-        } finally {
-            try {
-                conn.close();
-                statement.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
         }
+        conn = null;
     }
 }
