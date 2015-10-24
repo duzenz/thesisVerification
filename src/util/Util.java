@@ -1,4 +1,7 @@
-package verifyCbr;
+package util;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -44,4 +47,14 @@ public class Util {
         }
     }
 
+    public void printResultsToFile(String text, String filename) {
+        File inputFile = new File(filename);
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile, true));
+            writer.append(text + System.getProperty("line.separator"));
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
