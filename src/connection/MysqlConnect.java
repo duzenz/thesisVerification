@@ -41,20 +41,35 @@ public final class MysqlConnect {
         int result = statement.executeUpdate(insertQuery);
         return result;
     }
-
-    public void exportData(String query) {
-        Statement stmt;
-        try {
-            stmt = db.conn.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_UPDATABLE);
-            stmt.executeQuery(query);
-        } catch (Exception e) {
-            e.printStackTrace();
-            stmt = null;
-        }
+    
+    public void removeTable(String tablename) throws SQLException {
+        String sql = "drop table IF EXISTS " + tablename;
+        insert(sql);
     }
 
-    public void createCsvFiles(String tablename, String columns, String filename) {
-        String query = "SELECT " + columns + " into OUTFILE  '" + filename + "" + "' FIELDS TERMINATED BY ',' FROM " + tablename + " where order by " + columns;
-        exportData(query);
+    public void createCsvFiles(String tablename, String columns, String filename) throws SQLException {
+        query("SELECT " + columns + " into OUTFILE  '" + filename + "" + "' FIELDS TERMINATED BY ',' FROM " + tablename + " order by " + columns);
+    }
+    
+    public void removeDifferentValuesFromTable(String targetTable, String baseTable, String column) throws SQLException{
+        System.out.println("removing " + column + " from " + targetTable + " base table : " + baseTable);
+        String sql = "select distinct(" + column + ") from " + targetTable + " where " + column + 
+                     " not in (select distinct(" + column + ") from " + baseTable + ")";
+        ResultSet rs = query(sql);
+        while (rs.next()) {
+            int userId = rs.getInt(column);
+            sql = "delete from " + targetTable + " where " + column + " = " + userId;
+            insert(sql);
+        }
+    }
+    
+    public int getTableCount(String tablename) throws SQLException {
+        String sql = "SELECT count(*) as count from " + tablename;
+        ResultSet countRes = query(sql);
+        int count = 0;
+        while (countRes.next()) {
+            count = countRes.getInt("count");
+        }
+        return count;
     }
 }
