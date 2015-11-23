@@ -2,6 +2,10 @@ package util;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -57,4 +61,28 @@ public class Util {
             e.printStackTrace();
         }
     }
+
+    public void copyFileToNewLocation(String baseFile, String targetFile) {
+        File source = new File(baseFile);
+        File destination = new File(targetFile);
+        try {
+            Files.copy(source.toPath(), destination.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void deleteFile(String path) {
+        File file = new File(path);
+        try {
+            Files.delete(file.toPath());
+        } catch (NoSuchFileException x) {
+            System.err.format("%s: no such" + " file or directory%n", path);
+        } catch (DirectoryNotEmptyException x) {
+            System.err.format("%s not empty%n", path);
+        } catch (IOException x) {
+            System.err.println(x);
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package connection;
 
+import com.hp.hpl.jena.reasoner.rulesys.builtins.Quotient;
 import com.mysql.jdbc.Connection;
 
 import java.sql.*;
@@ -49,6 +50,10 @@ public final class MysqlConnect {
 
     public void createCsvFiles(String tablename, String columns, String filename) throws SQLException {
         query("SELECT " + columns + " into OUTFILE  '" + filename + "" + "' FIELDS TERMINATED BY ',' FROM " + tablename + " order by " + columns);
+    }
+    
+    public void createCsvQuery(String query) throws SQLException {
+        query(query);
     }
     
     public void removeDifferentValuesFromTable(String targetTable, String baseTable, String column) throws SQLException{
