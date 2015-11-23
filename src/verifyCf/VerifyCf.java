@@ -1,113 +1,102 @@
 package verifyCf;
-import connection.MysqlConnect;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.sql.ResultSet;
 import java.util.List;
 
-import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
-import org.apache.mahout.cf.taste.impl.neighborhood.CachingUserNeighborhood;
-import org.apache.mahout.cf.taste.impl.neighborhood.NearestNUserNeighborhood;
-import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
-import org.apache.mahout.cf.taste.impl.similarity.CachingUserSimilarity;
-import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
-import org.apache.mahout.cf.taste.model.DataModel;
-import org.apache.mahout.cf.taste.neighborhood.UserNeighborhood;
+import model.UserTrack;
+
 import org.apache.mahout.cf.taste.recommender.RecommendedItem;
 import org.apache.mahout.cf.taste.recommender.UserBasedRecommender;
-import org.apache.mahout.cf.taste.similarity.UserSimilarity;
+
+import util.Constants;
+import util.RecommendationUtil;
+import util.Util;
+import connection.DBOperation;
 
 public class VerifyCf {
 
-    public static int threshold = 15;
-    public static int recommendationCount = 1000;
-    public static MysqlConnect conn = null;
-    public static DataModel dm;
-    public static UserSimilarity similarity;
-    public static UserNeighborhood neighborhood;
-    public static UserBasedRecommender recommender;
-    public static String trainingTableName = "training_user_track_";
-    public static String testTableName = "test_user_track_";
-    public static String outputFileName = "cf_test_results_";
-    public static int  i = 0;
-    public static int startIndex = 1;
-    public static int endIndex = 3;
+    private Util util;
+    private DBOperation dbUtil;
+    private RecommendationUtil recUtil;
+
+    public VerifyCf() {
+        util = new Util();
+        dbUtil = new DBOperation();
+        recUtil = new RecommendationUtil();
+    }
 
     public static void main(String[] args) {
-        long startTime = System.currentTimeMillis();
-        conn = MysqlConnect.getDbCon();
-        for (i = startIndex; i <= endIndex; i++) {
-            try {
-                dm = new FileDataModel(new File("data\\" + trainingTableName + i + ".csv"));
-                similarity = new CachingUserSimilarity(new LogLikelihoodSimilarity(dm), dm);
-                neighborhood = new CachingUserNeighborhood(new NearestNUserNeighborhood(VerifyCf.threshold, similarity, dm), dm);
-                recommender = new GenericUserBasedRecommender(dm, neighborhood, similarity);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            VerifyCf verify = new VerifyCf();
-            verify.verifyCF();
-            long stopTime = System.currentTimeMillis();
-            System.out.println((stopTime - startTime) / 1000 + " sec");
-        }
-    }
-    
-    public void getUserRecommendations(int userId) {
-        try {
-            String sql = "select * from " + testTableName + i + " where user_id = " + userId;
-            ResultSet resultset = conn.query(sql);
-            List<RecommendedItem> recommendations = recommender.recommend(userId, VerifyCf.recommendationCount);
-            System.out.println("recom size: " + recommendations.size());
-            
-            while (resultset.next()) {
-                int trackId = resultset.getInt("track_id");
-                boolean found = false;
-                int counter = 0;
-                for (RecommendedItem item : recommendations) {
-                    counter++;
-                    if (item.getItemID() == trackId) {
-                        found = true;
-                        printResultsToFile(userId + "," + trackId + "," + "1," + item.getValue() + ","+ counter, "data\\"  + outputFileName + i + ".csv");
-                        break;
-                    }
-                }
-                if (!found) {
-                    printResultsToFile(userId + "," + trackId + "," + "0," + 0 + ","+ counter, "data\\" + outputFileName + i + ".csv");
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        VerifyCf verify = new VerifyCf();
+        for (int i = 1; i <= 3; i++) {
+            verify.runOperations(i);
         }
     }
 
-    public void verifyCF() {
-        try {
-            ResultSet resultSet = conn.query("select distinct(user_id) from " + testTableName + i + " order by user_id");
-            while (resultSet.next()) {
-                int userId = resultSet.getInt("user_id");
-                System.out.println("user id : " + userId);
-                long startTime = System.currentTimeMillis();
-                getUserRecommendations(userId);
-                long stopTime = System.currentTimeMillis();
-                System.out.println((stopTime - startTime) / 1000 + " sec");
+    public void runOperations(int index) {
+        long startTime = System.currentTimeMillis();
+
+        UserBasedRecommender recommender = recUtil.getRecommender(Constants.dataLocations + Constants.trainingUserTrackTable + index + ".csv");
+        verifyCF(index, recommender);
+
+        long stopTime = System.currentTimeMillis();
+        System.out.println((stopTime - startTime) / 1000 + " sec");
+    }
+
+    public void getUserRecommendations(int userId, int index, UserBasedRecommender recommender) {
+        List<UserTrack> userTracks = dbUtil.getUserTracks(Constants.testUserTrackTable + index, userId);
+        List<RecommendedItem> recommendations = recUtil.recommendTrack(recommender, userId, Constants.recommendationCount);
+        System.out.println("recom size: " + recommendations.size());
+        //printResults(userTracks, recommendations, index);
+        calculatePrecisionRecall(recommendations, userTracks, userId, index);
+    }
+
+    public void verifyCF(int index, UserBasedRecommender recommender) {
+        List<Integer> distinctUserIds = dbUtil.getDistinctColumnValuesOfTable(Constants.testUserTrackTable + index, "user_id");
+        for (int userId : distinctUserIds) {
+            getUserRecommendations(userId, index, recommender);
+        }
+    }
+
+    public void printResults(List<UserTrack> userTracks, List<RecommendedItem> recommendations, int index) {
+        for (UserTrack ut : userTracks) {
+            boolean found = false;
+            int counter = 0;
+            for (RecommendedItem item : recommendations) {
+                counter++;
+                if (item.getItemID() == ut.getTrackId()) {
+                    found = true;
+                    util.printResultsToFile(ut.getUserId() + "," + ut.getTrackId() + "," + "1," + item.getValue() + "," + counter, Constants.dataLocations + Constants.cfOutputFileName + index
+                            + ".csv");
+                    break;
+                }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            if (!found) {
+                util.printResultsToFile(ut.getUserId() + "," + ut.getTrackId() + "," + "0," + 0 + "," + counter, Constants.dataLocations + Constants.cfOutputFileName + index + ".csv");
+            }
         }
     }
     
-    public void printResultsToFile(String text, String filename) {
-        File inputFile = new File(filename);
-        try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(inputFile, true));
-            writer.append(text + System.getProperty("line.separator"));
-            writer.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void calculatePrecisionRecall(List<RecommendedItem> recommendations, List<UserTrack> userTracks, int userId, int index) {
+        int precisionBase = recommendations.size();
+        int recallBase = userTracks.size();
+        
+        int counter = 0;
+        for (RecommendedItem recommendation: recommendations) {
+            for (UserTrack ut : userTracks) {
+                if (recommendation.getItemID() == ut.getTrackId()) {
+                    counter++;
+                }
+            }
         }
+        
+        float precision = 0;
+        float recall = 0;
+        if (precisionBase != 0) {
+            precision = (float) counter / precisionBase;
+        }
+        if (recallBase != 0) {
+            recall = (float) counter / recallBase;
+        }
+        String line = userId + "," + Constants.listenThreshold + "," + precisionBase + "," + recallBase + "," + counter + "," + precision + "," + recall;
+        util.printResultsToFile(line, Constants.absoluteDataLocation + Constants.cfPrecisionResults + index + ".csv");
     }
-    
-    
 }
