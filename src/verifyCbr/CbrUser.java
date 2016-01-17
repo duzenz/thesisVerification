@@ -38,7 +38,7 @@ public class CbrUser {
         List<Individual> modelInstances = cbrUtil.getInstanceList(model, caseObj);
 
         String line = "userId" + "," + "precisionBase" + "," + "recallBase" + "," + "founded" + "," + "precision" + "," + "recall";
-        util.printResultsToFile(line, Constants.cbrPrecisionResults + index + ".csv");
+        util.printResultsToFile(line, Constants.absoluteDataLocation + Constants.cbrPrecisionResults + index + ".csv");
         
         List<Integer> userIds = dbUtil.getDistinctColumnValuesOfTable(testUserTrackTable, "user_id");
         for (int userId : userIds) {
@@ -48,6 +48,7 @@ public class CbrUser {
             CustomIndividual customIndividiual = cbrUtil.createIndividualForUser(model, userInfo, userTracks);
             Map<String, Integer> distanceMap = util.sortByComparator(cbrUtil.compareInstanceWithModelInstances(model, modelInstances, customIndividiual), Constants.DESC);
             printRecommendationsToFile(distanceMap, userTracks, userId, index);
+            distanceMap = null;
         }
     }
 

@@ -9,15 +9,19 @@ import model.*;
 
 public class DBOperation {
 
-    public static MysqlConnect conn = null;
+    private static MysqlConnect conn = null;
 
     public DBOperation() {
         conn = MysqlConnect.getDbCon();
     }
     
+    public MysqlConnect getConn() {
+        return conn;
+    }
+
     // TODO this function is only works for int typed columns
     public List<Integer> getDistinctColumnValuesOfTable(String tablename, String columnName) {
-        List<Integer> distinctList = new ArrayList<Integer>();
+        List<Integer> distinctList = new ArrayList<>();
         String sql = "select distinct(" + columnName + ") from " + tablename + " order by " + columnName;
         try {
             ResultSet resultSet = conn.query(sql);
@@ -28,6 +32,15 @@ public class DBOperation {
             e.printStackTrace();
         }
         return distinctList;
+    }
+
+    public void truncateTable(String tablename) {
+        try {
+            String sql = "drop table IF EXISTS " + tablename;
+            conn.insert(sql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public User getUserInfo(int userId) {
@@ -50,15 +63,37 @@ public class DBOperation {
     }
 
     public List<UserTrack> getUserTracks(String tableName, int userId) {
-        String sql = "select * from " + tableName + " where user_id = " + userId + " order by listen_count desc";
-        List<UserTrack> userTracks = new ArrayList<UserTrack>();
+        String sql = "select * from " + tableName + " where user_id = " + userId;
+        List<UserTrack> userTracks = new ArrayList<>();
         try {
             ResultSet rs = conn.query(sql);
-            while(rs.next()) {
+            while (rs.next()) {
                 UserTrack ut = new UserTrack();
                 ut.setListenCount(rs.getInt("listen_count"));
                 ut.setTrackId(rs.getInt("track_id"));
                 ut.setUserId(userId);
+                ut.setTime(rs.getString("time"));
+                //ut.setRating(rs.getFloat("rating"));
+                userTracks.add(ut);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return userTracks;
+    }
+
+    public List<UserTrack> getUserTracks(String tableName, int userId, int ratingThreshold) {
+        String sql = "select * from " + tableName + " where user_id = " + userId + " order by listen_count desc, time asc limit 10";
+        List<UserTrack> userTracks = new ArrayList<>();
+        try {
+            ResultSet rs = conn.query(sql);
+            while (rs.next()) {
+                UserTrack ut = new UserTrack();
+                ut.setListenCount(rs.getInt("listen_count"));
+                ut.setTrackId(rs.getInt("track_id"));
+                ut.setUserId(userId);
+                ut.setTime(rs.getString("time"));
+                //ut.setRating(rs.getFloat("rating"));
                 userTracks.add(ut);
             }
         } catch (Exception e) {
@@ -87,7 +122,7 @@ public class DBOperation {
         }
         return t;
     }
-    
+
     public void createCfTrainingFile(String columns, String filename, String trainingTable, int userId) throws SQLException {
         conn.query("SELECT " + columns + " into OUTFILE  '" + filename + "" + "' FIELDS TERMINATED BY ',' FROM " + trainingTable + " where user_id != " + userId + " order by " + columns);
     }

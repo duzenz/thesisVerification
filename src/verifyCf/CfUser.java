@@ -49,7 +49,7 @@ public class CfUser {
             try {
                 dbUtil.createCfTrainingFile(columns, filename, trainingTable, userId);
                 List<UserTrack> trainingUserTracks = dbUtil.getUserTracks(trainingTable, userId);
-                List<UserTrack> testUserTracks = dbUtil.getUserTracks(testTable, userId);
+                List<UserTrack> testUserTracks = dbUtil.getUserTracks(testTable, userId, 5);
                 int counter = 0;
                 for (UserTrack ut : trainingUserTracks) {
                     counter++;

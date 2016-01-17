@@ -1,14 +1,16 @@
 package connection;
 
-import com.hp.hpl.jena.reasoner.rulesys.builtins.Quotient;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import com.mysql.jdbc.Connection;
 
-import java.sql.*;
-
 public final class MysqlConnect {
-    public Connection conn;
+    private Connection conn;
     private Statement statement;
-    public static MysqlConnect db;
+    private static MysqlConnect db;
 
     private MysqlConnect() {
         String url = "jdbc:mysql://localhost:3306/";
@@ -33,16 +35,14 @@ public final class MysqlConnect {
 
     public ResultSet query(String query) throws SQLException {
         statement = db.conn.createStatement();
-        ResultSet res = statement.executeQuery(query);
-        return res;
+        return statement.executeQuery(query);
     }
 
     public int insert(String insertQuery) throws SQLException {
         statement = db.conn.createStatement();
-        int result = statement.executeUpdate(insertQuery);
-        return result;
+        return statement.executeUpdate(insertQuery);
     }
-    
+
     public void removeTable(String tablename) throws SQLException {
         String sql = "drop table IF EXISTS " + tablename;
         insert(sql);
@@ -51,23 +51,23 @@ public final class MysqlConnect {
     public void createCsvFiles(String tablename, String columns, String filename) throws SQLException {
         query("SELECT " + columns + " into OUTFILE  '" + filename + "" + "' FIELDS TERMINATED BY ',' FROM " + tablename + " order by " + columns);
     }
-    
+
     public void createCsvQuery(String query) throws SQLException {
         query(query);
     }
-    
-    public void removeDifferentValuesFromTable(String targetTable, String baseTable, String column) throws SQLException{
+
+    public void removeDifferentValuesFromTable(String targetTable, String baseTable, String column) throws SQLException {
         System.out.println("removing " + column + " from " + targetTable + " base table : " + baseTable);
-        String sql = "select distinct(" + column + ") from " + targetTable + " where " + column + 
-                     " not in (select distinct(" + column + ") from " + baseTable + ")";
+        String sql = "select distinct(" + column + ") from " + targetTable + " where " + column + " not in (select distinct(" + column + ") from " + baseTable + ")";
         ResultSet rs = query(sql);
+        String s = "";
         while (rs.next()) {
-            int userId = rs.getInt(column);
-            sql = "delete from " + targetTable + " where " + column + " = " + userId;
-            insert(sql);
+            s += rs.getInt(column) + ",";
         }
+        s = s.replaceAll(",$", "");
+        insert("delete from " + targetTable + " where " + column + " in (" + s + ")");
     }
-    
+
     public int getTableCount(String tablename) throws SQLException {
         String sql = "SELECT count(*) as count from " + tablename;
         ResultSet countRes = query(sql);

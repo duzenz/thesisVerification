@@ -20,7 +20,6 @@ import com.hp.hpl.jena.ontology.OntModel;
 import com.hp.hpl.jena.ontology.OntModelSpec;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Property;
-import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 import com.hp.hpl.jena.util.iterator.ExtendedIterator;
@@ -113,6 +112,7 @@ public class CbrUtil {
             }
         }
         ci.setTags(tagSet);
+        tagSet = null;
         return ci;
     }
 
@@ -175,6 +175,8 @@ public class CbrUtil {
             }
         }
         
+        comparedProps = null;
+        
         StmtIterator testedProps = selectedIndividual.listProperties();
         while (testedProps.hasNext()) {
             Statement testedStatement = (Statement) testedProps.next();
@@ -197,6 +199,7 @@ public class CbrUtil {
                 }
             }
         }
+        testedProps = null;
         return value;
     }
 

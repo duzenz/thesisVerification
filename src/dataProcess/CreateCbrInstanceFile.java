@@ -62,13 +62,13 @@ public class CreateCbrInstanceFile {
         country = m.getObjectProperty(camNS + "HAS-COUNTRY");
         gender = m.getObjectProperty(camNS + "HAS-GENDER");
         register = m.getObjectProperty(camNS + "HAS-REGISTER");
-        listenWay = m.getObjectProperty(camNS + "HAS-LISTEN_WAY");
-        selfView = m.getObjectProperty(camNS + "HAS-SELF_VIEW");
-        track = m.getObjectProperty(camNS + "HAS-TRACK");
-        duration = m.getObjectProperty(camNS + "HAS-DURATION");
-        listener = m.getObjectProperty(camNS + "HAS-LISTENER");
-        playcount = m.getObjectProperty(camNS + "HAS-PLAY_COUNT");
-        artist = m.getObjectProperty(camNS + "HAS-ARTIST");
+        //listenWay = m.getObjectProperty(camNS + "HAS-LISTEN_WAY");
+        //selfView = m.getObjectProperty(camNS + "HAS-SELF_VIEW");
+        //track = m.getObjectProperty(camNS + "HAS-TRACK");
+        //duration = m.getObjectProperty(camNS + "HAS-DURATION");
+        //listener = m.getObjectProperty(camNS + "HAS-LISTENER");
+        //playcount = m.getObjectProperty(camNS + "HAS-PLAY_COUNT");
+        //artist = m.getObjectProperty(camNS + "HAS-ARTIST");
         tag = m.getObjectProperty(camNS + "HAS-TAG"); 
         //create training dbs
         //ins.createTrainingTables();
@@ -100,9 +100,11 @@ public class CreateCbrInstanceFile {
                 int counter = 0;
                 while (results.next()) {
                     long startTime = System.currentTimeMillis();
+                    
                     int trackId = results.getInt("track_id");
                     System.out.println(trackId);
-                    int listenCount = results.getInt("listen_count");
+                    
+                    //int listenCount = results.getInt("listen_count");
                     OntClass obj = m.createClass(camNS + "RECOMMEND_CASE");
                     
                     Individual oldInd = m.getIndividual(camNS + "I" + trackId);
@@ -114,7 +116,7 @@ public class CreateCbrInstanceFile {
                     Individual instance = obj.createIndividual(camNS + "I" + trackId);
                     counter++;
                     
-                    String viewCol = "";
+                    /*String viewCol = "";
                     if (listenCount <= 23) {
                         viewCol = "few";
                     } else if (listenCount > 23 && listenCount <= 100) {
@@ -122,7 +124,7 @@ public class CreateCbrInstanceFile {
                     } else {
                         viewCol = "many";
                     }
-                    instance.addProperty(selfView, m.createTypedLiteral(viewCol));
+                    instance.addProperty(selfView, m.createTypedLiteral(viewCol));*/
                     
                     
                     sql = "select user_id from " + userTrackTable + i + " where track_id = " + trackId;
@@ -157,19 +159,21 @@ public class CreateCbrInstanceFile {
                     while (registerResult.next()) {
                         instance.addProperty(register, m.createTypedLiteral(registerResult.getString("register_col")));
                     }
+                    
+                    
                     sql = "select * from track where id = " + trackId;
                     ResultSet trackInfo = conn.query(sql);
                     while (trackInfo.next())  {
-                        String durationCol = trackInfo.getString("duration");
-                        String listenerCol = trackInfo.getString("listener");
-                        String playCountCol = trackInfo.getString("play_count");
+                        //String durationCol = trackInfo.getString("duration");
+                        //String listenerCol = trackInfo.getString("listener");
+                        //String playCountCol = trackInfo.getString("play_count");
                         String tagsCol = trackInfo.getString("tags");
-                        String artistMbidCol = trackInfo.getString("artist_mbid");
+                        //String artistMbidCol = trackInfo.getString("artist_mbid");
                         
-                        instance.addProperty(duration, m.createTypedLiteral(durationCol));
-                        instance.addProperty(listener, m.createTypedLiteral(listenerCol));
-                        instance.addProperty(playcount, m.createTypedLiteral(playCountCol));
-                        instance.addProperty(artist, m.createTypedLiteral(artistMbidCol));
+                        //instance.addProperty(duration, m.createTypedLiteral(durationCol));
+                        //instance.addProperty(listener, m.createTypedLiteral(listenerCol));
+                        //instance.addProperty(playcount, m.createTypedLiteral(playCountCol));
+                        //instance.addProperty(artist, m.createTypedLiteral(artistMbidCol));
                         
                         String[] tagArray = tagsCol.split(",");
                         for (int k = 0; k < tagArray.length; k++) {

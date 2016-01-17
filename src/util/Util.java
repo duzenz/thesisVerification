@@ -1,4 +1,5 @@
 package util;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -71,11 +72,12 @@ public class Util {
             e.printStackTrace();
         }
     }
-    
+
     public void deleteFile(String path) {
         File file = new File(path);
         try {
             Files.delete(file.toPath());
+            System.out.println("File in path : " + path + " deleted");
         } catch (NoSuchFileException x) {
             System.err.format("%s: no such" + " file or directory%n", path);
         } catch (DirectoryNotEmptyException x) {
@@ -84,5 +86,4 @@ public class Util {
             System.err.println(x);
         }
     }
-
 }

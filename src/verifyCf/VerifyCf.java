@@ -42,15 +42,20 @@ public class VerifyCf {
     }
 
     public void getUserRecommendations(int userId, int index, UserBasedRecommender recommender) {
-        List<UserTrack> userTracks = dbUtil.getUserTracks(Constants.testUserTrackTable + index, userId);
+        List<UserTrack> testUserTracks = dbUtil.getUserTracks(Constants.testUserTrackTable + index, userId);
+        List<UserTrack> trainingUserTracks = dbUtil.getUserTracks(Constants.trainingUserTrackTable + index, userId);
         List<RecommendedItem> recommendations = recUtil.recommendTrack(recommender, userId, Constants.recommendationCount);
-        System.out.println("recom size: " + recommendations.size());
+        System.out.println("user id: " + userId + "  recom size: " + recommendations.size());
         //printResults(userTracks, recommendations, index);
-        calculatePrecisionRecall(recommendations, userTracks, userId, index);
+        calculatePrecisionRecall(recommendations, testUserTracks, trainingUserTracks, userId, index);
     }
 
     public void verifyCF(int index, UserBasedRecommender recommender) {
         List<Integer> distinctUserIds = dbUtil.getDistinctColumnValuesOfTable(Constants.testUserTrackTable + index, "user_id");
+        String headerLine = "User Id, Listen Threshold, Recommendation Size, Training Size, Test Size, Found Count, Precision, Recall";
+        String cfResultFileName = Constants.absoluteDataLocation + Constants.cfPrecisionResults + index + ".csv";
+        util.deleteFile(cfResultFileName);
+        util.printResultsToFile(headerLine, cfResultFileName);
         for (int userId : distinctUserIds) {
             getUserRecommendations(userId, index, recommender);
         }
@@ -74,20 +79,20 @@ public class VerifyCf {
             }
         }
     }
-    
-    public void calculatePrecisionRecall(List<RecommendedItem> recommendations, List<UserTrack> userTracks, int userId, int index) {
+
+    public void calculatePrecisionRecall(List<RecommendedItem> recommendations, List<UserTrack> testUserTracks, List<UserTrack> trainingUserTracks, int userId, int index) {
         int precisionBase = recommendations.size();
-        int recallBase = userTracks.size();
-        
+        int recallBase = testUserTracks.size();
+
         int counter = 0;
-        for (RecommendedItem recommendation: recommendations) {
-            for (UserTrack ut : userTracks) {
+        for (RecommendedItem recommendation : recommendations) {
+            for (UserTrack ut : testUserTracks) {
                 if (recommendation.getItemID() == ut.getTrackId()) {
                     counter++;
                 }
             }
         }
-        
+
         float precision = 0;
         float recall = 0;
         if (precisionBase != 0) {
@@ -96,7 +101,7 @@ public class VerifyCf {
         if (recallBase != 0) {
             recall = (float) counter / recallBase;
         }
-        String line = userId + "," + Constants.listenThreshold + "," + precisionBase + "," + recallBase + "," + counter + "," + precision + "," + recall;
+        String line = userId + "," + Constants.listenThreshold + "," + precisionBase + "," + trainingUserTracks.size() + "," + recallBase + "," + counter + "," + precision + "," + recall;
         util.printResultsToFile(line, Constants.absoluteDataLocation + Constants.cfPrecisionResults + index + ".csv");
     }
 }

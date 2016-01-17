@@ -6,7 +6,7 @@ import java.util.List;
 import org.apache.mahout.cf.taste.impl.model.file.FileDataModel;
 import org.apache.mahout.cf.taste.impl.neighborhood.CachingUserNeighborhood;
 import org.apache.mahout.cf.taste.impl.neighborhood.NearestNUserNeighborhood;
-import org.apache.mahout.cf.taste.impl.recommender.GenericUserBasedRecommender;
+import org.apache.mahout.cf.taste.impl.recommender.GenericBooleanPrefUserBasedRecommender;
 import org.apache.mahout.cf.taste.impl.similarity.CachingUserSimilarity;
 import org.apache.mahout.cf.taste.impl.similarity.LogLikelihoodSimilarity;
 import org.apache.mahout.cf.taste.model.DataModel;
@@ -20,9 +20,9 @@ public class RecommendationUtil {
     public UserBasedRecommender getRecommender(String filename) {
         try {
             DataModel dm = new FileDataModel(new File(filename));
-            UserSimilarity similarity = new CachingUserSimilarity(new LogLikelihoodSimilarity(dm), dm);
-            UserNeighborhood neighborhood = new CachingUserNeighborhood(new NearestNUserNeighborhood(Constants.threshold, similarity, dm), dm);
-            return new GenericUserBasedRecommender(dm, neighborhood, similarity);
+            UserSimilarity similarity = new CachingUserSimilarity(new  LogLikelihoodSimilarity(dm), dm);
+            UserNeighborhood neighborhood = new CachingUserNeighborhood(new NearestNUserNeighborhood(10, similarity, dm), dm);
+            return new GenericBooleanPrefUserBasedRecommender(dm, neighborhood, similarity);
         } catch (Exception e) {
             e.printStackTrace();
         }
